@@ -1,0 +1,84 @@
+trainer: ocp
+model:
+  basis_width_scalar: 2
+  cutoff: 12
+  distance_function: gaussian
+  hidden_channels: 256
+  lmax_list:
+  - 4
+  max_neighbors: 20
+  mmax_list:
+  - 2
+  name: escn
+  num_layers: 12
+  num_sphere_samples: 128
+  otf_graph: true
+  regress_forces: true
+  sphere_channels: 128
+  use_pbc: true
+dataset:
+  train:
+    format: lmdb
+    key_mapping:
+      force: forces
+      y: energy
+    src: data/s2ef/2M/train/
+    transforms:
+      normalizer:
+        energy:
+          mean: -0.7554450631141663
+          stdev: 2.887317180633545
+        forces:
+          mean: 0
+          stdev: 2.887317180633545
+  val:
+    sample_n: 2000
+    seed: 0
+    src: data/s2ef/all/val_id/
+optim:
+  batch_size: 6
+  clip_grad_norm: 20
+  ema_decay: 0.999
+  eval_batch_size: 6
+  eval_every: 5000
+  lr_gamma: 0.3
+  lr_initial: 0.0008
+  lr_milestones:
+  - 145833
+  - 187500
+  - 229166
+  max_epochs: 12
+  num_workers: 0
+  optimizer: AdamW
+  optimizer_params:
+    amsgrad: true
+  warmup_factor: 0.2
+  warmup_steps: 100
+outputs:
+  energy:
+    level: system
+    shape: 1
+  forces:
+    eval_on_free_atoms: true
+    irrep_dim: 1
+    level: atom
+    train_on_free_atoms: true
+loss_functions:
+- energy:
+    coefficient: 2
+    fn: mae
+- forces:
+    coefficient: 100
+    fn: l2mae
+evaluation_metrics:
+  metrics:
+    energy:
+    - mae
+    forces:
+    - mae
+    - cosine_similarity
+    - magnitude_error
+    misc:
+    - energy_forces_within_threshold
+  primary_metric: forces_mae
+logger: wandb
